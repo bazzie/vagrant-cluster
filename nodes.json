@@ -1,0 +1,22 @@
+{
+  "nodes": { 
+    "node1": {
+      ":hostname": "node1",   
+      ":ip": "192.168.0.41", 
+      ":box": "puppetlabs/centos-6.6-64-nocm",
+      "createdisks": true
+    },
+    "node2": {
+      ":hostname": "node2",   
+      ":ip": "192.168.0.42", 
+      ":box": "puppetlabs/centos-6.6-64-nocm",
+      "createdisks": true
+    },
+    "node3": {
+      ":hostname": "node3",  
+      ":ip": "192.168.0.43",
+      ":box": "puppetlabs/centos-6.6-64-nocm",
+      "createdisks": true
+    }
+  }
+}

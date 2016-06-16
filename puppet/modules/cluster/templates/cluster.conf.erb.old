@@ -1,0 +1,129 @@
+<?xml version="1.0"?>
+<cluster config_version="2" name="<%= @params['name'] -%>">
+  <fence_daemon clean_start="0" post_fail_delay="0" post_join_delay="3"/>
+  <clusternodes>
+<% node_id = 1 -%>
+<% @params['nodes'].each do |node| -%>
+    <clusternode name="<%= node['cic_fqdn'] -%>" nodeid="<%= node_id -%>" votes="1">
+      <fence>
+<% node['fencing_methods'].each do |method| -%>
+        <method name="<%= method['name'] -%>">
+          <device name="<%= method['device'] -%>"/>
+        </method>
+<%# End fence method loop -%>
+<% end -%>
+      </fence>
+    </clusternode>
+<% node_id += 1 -%>
+<%# End of clusternode loop -%>
+<% end -%>
+  </clusternodes>
+
+<% if @params['type'] == '2node' -%>
+  <cman two_node="1" expected_votes="1">
+<% else -%>
+  <cman>
+<% end -%>
+    <multicast addr="<%= @params['multicast'] -%>"/>
+  </cman>
+
+  <fencedevices>
+<% node_id = 1 -%>
+<% @params['nodes'].each do |node| -%>
+<% node['fencing_methods'].each do |method| -%>
+<% case method['agent'] when 'fence_rhevm' -%>
+    <fencedevice agent="<%= method['agent'] -%>"<% if @params['type'] == '2node' and node_id == 2 -%> delay="30"<% end -%> ipaddr="<%= method['address'] -%>" login="<%= method['user'] -%>" name="<%= method['device'] -%>" port="<%= method['device'] -%>" ipport="443" passwd="<%= method['password'] -%>" power_wait="10" ssl="1"/>
+<% when 'fence_ipmilan' -%>
+    <fencedevice agent="<%= method['agent'] -%>"<% if @params['type'] == '2node' and node_id == 2 -%> delay="30"<% end -%> ipaddr="<%= method['address'] -%>" lanplus="on" login="<%= method['user'] -%>" name="<%= method['device'] -%>" passwd="<%= method['password'] -%>" privlvl="OPERATOR"/>
+<% when 'fence_scsi' -%>
+<%# For cosmetic reasons put the fence_scsi line last -%>
+<% if node == @params['nodes'][-1] -%>
+    <fencedevice agent="<%= method['agent'] -%>" name="<%= method['name'] -%>"/>
+<%# End of if last -%>
+<% end -%>
+<%# End of case fence method -%>
+<% end -%>
+<%# End of each method -%>
+<% end -%>
+<% node_id += 1 -%>
+<%# End of each node -%>
+<% end -%>
+  </fencedevices>
+
+<% if @params['failoverdomains'] -%>
+  <rm>
+
+    <failoverdomains>
+<% @params['failoverdomains'].each do |fod| -%>
+      <failoverdomain name="<%= fod['name'] -%>"<% if fod['nofailback'] -%> nofailback="<%= fod['nofailback'] -%>"<% end -%><% if fod['ordered'] -%> ordered="<%= fod['ordered'] -%>"<% end -%><% if fod['restricted'] -%> restricted="<%= fod['restricted'] -%>"<% end -%>>
+<% fod['servers'].each do |srv| -%>
+        <failoverdomainnode name="<%= srv['name'] -%>"/>
+<%# End of failovernode loop -%>
+<% end -%>
+<%# End of failoverdomain loop -%>
+<% end -%>
+      </failoverdomain>
+    </failoverdomains>
+
+<% if @params['resources'] -%>
+    <resources>
+<% @params['resources'].each do |res| -%>
+<% if res['vip'] -%>
+      <ip address="<%= res['vip'] -%>" sleeptime="<%= res['sleeptime'] -%>"/>
+<%# End of if vip -%>
+<% end -%>
+<% if res['nfsserver'] -%>
+      <nfsserver name="<%= res['nfsserver'] -%>" nfspath="<%= res['nfspath'] -%>" path="<%= res['path'] -%>"/>
+<%# End of if nfsserver -%>
+<% end -%>
+<% if res['nfsclient'] -%>
+      <nfsclient name="<%= res['nfsclient'] -%>" options="<%= res['options'] -%>" target="<%= res['target'] -%>"/>
+<%# End of if nfsclient -%>
+<% end -%>
+<% if res['script'] -%>
+      <script file="<%= res['path'] -%>" name="<%= res['script'] -%>"/>
+<%# End of if script -%>
+<% end -%>
+<%# End of each -%>
+<% end -%>
+    </resources>
+<%# End of if script -%>
+<% end -%>
+<% if @params['services'] -%>
+
+<% @params['services'].each do |svc| -%>
+    <service domain="<%= svc['domain'] -%>"<% if svc['autostart'] -%> autostart="<%= svc['autostart'] -%>"<% end -%><% if svc['max_restarts'] -%> max_restarts="<%= svc['max_restarts'] -%>"<% end -%> name="<%= svc['name'] -%>" recovery="<%= svc['recovery'] -%>"<% if svc['restart_expire_time'] -%> restart_expire_time="<%= svc['restart_expire_time'] -%>"<% end -%>>
+<% svc['references'].each do |ref| -%>
+<%# ref['params'][0]['server'] -%>
+<% if ref['ip'] -%>
+     <ip ref="<%= ref['ip'] -%>"/>
+<%# End of if ref ip -%>
+<% end -%>
+<% if ref['script'] -%>
+     <script ref="<%= ref['script'] -%>"/>
+<% if ref['action'] -%>
+       <action interval="<%= ref['action']['interval'] -%>" name="<%= ref['action']['name'] -%>" timeout="<%= ref['action']['timeout'] -%>"/>
+<% end -%>
+<%# End of if ref script -%>
+<% end -%>
+<% if ref['nfsserver'] -%>
+     <nfsserver ref="<%= ref['nfsserver'] -%>">
+       <nfsclient ref="<%= ref['client'] -%>"/>
+     </nfsserver>
+<%# End of if ref nfsserver -%>
+<% end -%>
+<%# End of references loop -%>
+<% end -%>
+    </service>
+<%# End of services loop -%>
+<% end -%>
+<%# End of if services -%>
+<% end -%>
+
+  </rm>
+
+<%# End of if failoverdomains -%>
+<% end -%>
+</cluster>
+
+
